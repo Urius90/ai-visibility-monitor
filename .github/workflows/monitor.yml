@@ -1,0 +1,46 @@
+name: AI Visibility Monitor
+
+# Force refresh
+on:
+  schedule:
+    # Ejecutar diariamente a las 8:00 AM UTC (10:00 AM Madrid)
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    # Permitir ejecucion manual desde GitHub
+
+permissions:
+  contents: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create Google credentials file
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS }}' > credentials.json
+
+      - name: Run AI Visibility Monitor
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          BING_API_KEY: ${{ secrets.BING_API_KEY }}
+        run: python src/monitor.py
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f credentials.json

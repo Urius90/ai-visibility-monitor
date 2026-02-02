@@ -1,0 +1,37 @@
+# Credentials & secrets
+credentials.json
+*.key
+.env
+.env.*
+service_account.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Logs
+logs/
+*.log
+
+# AI responses cache
+ai_responses/
+
+# Data exports
+*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
