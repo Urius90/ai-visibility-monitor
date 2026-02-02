@@ -116,6 +116,11 @@ def check_claude(query: str) -> dict:
             'full_response': text[:500],
             'error': None
         }
+    except anthropic.APIStatusError as e:
+        error_msg = f"{e.status_code} - {e.message}"
+        if hasattr(e, 'body'):
+            error_msg += f" | Body: {e.body}"
+        return {'model': 'Claude', 'mentioned': False, 'position': None, 'error': error_msg}
     except Exception as e:
         return {'model': 'Claude', 'mentioned': False, 'position': None, 'error': str(e)}
 
@@ -123,7 +128,14 @@ def check_gemini(query: str) -> dict:
     """Consulta Gemini"""
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash-001')
+        genai.configure(api_key=GOOGLE_API_KEY)
+        # Probamos Gemini 2.0 Flash Lite que sabíamos que existía (dio 429 antes)
+        model = genai.GenerativeModel('gemini-2.0-flash-lite-preview-02-05') 
+        # Fallback a nombre generico si hace falta, pero intentemos ser específicos o usar el que funcionaba
+        # ERROR 404 indicated 1.5-flash-001 was gone. 
+        # ERROR 429 earlier indicated 2.0-flash-lite existed.
+        # Vamos a probar con 'gemini-2.0-flash' genérico que suele ser el alias estable.
+        model = genai.GenerativeModel('gemini-2.0-flash') 
         response = model.generate_content(query)
         text = response.text
         return {
@@ -666,7 +678,7 @@ def run_monitoring():
                 result = check_function(query)
                 
                 if result.get('error'):
-                    print(f"❌ {result['error'][:50]}")
+                    print(f"❌ {result['error'][:200]}") # Mostrar mas detalle del error
                 else:
                     mentioned = result['mentioned']
                     position = result.get('position', 'N/A')
@@ -680,7 +692,7 @@ def run_monitoring():
                 time.sleep(10)
                 
             except Exception as e:
-                print(f"❌ Error: {str(e)[:50]}")
+                print(f"❌ Error: {str(e)[:200]}")
                 query_results['models'][model_name] = {'model': model_name, 'mentioned': False, 'error': str(e)}
         
         all_results.append(query_results)
