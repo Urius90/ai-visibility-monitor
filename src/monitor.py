@@ -103,8 +103,8 @@ def check_claude(query: str) -> dict:
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
-            model="claude-3-5-haiku-20241022",
-            max_tokens=1500,
+            model="claude-3-5-sonnet-latest",
+            max_tokens=1000,
             messages=[{"role": "user", "content": query}]
         )
         text = message.content[0].text
@@ -123,7 +123,7 @@ def check_gemini(query: str) -> dict:
     """Consulta Gemini"""
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel('gemini-2.0-flash-lite')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         response = model.generate_content(query)
         text = response.text
         return {
@@ -306,7 +306,7 @@ def setup_sheets(spreadsheet):
                 'Perplexity_Mención', 'Perplexity_Posición',
                 'Bing_Mención', 'Bing_Posición'
             ]
-            sheet.update('A1:O1', [headers])
+            sheet.update(range_name='A1:O1', values=[headers])
             sheet.format('A1:O1', {
                 "backgroundColor": {"red": 0.2, "green": 0.2, "blue": 0.8},
                 "textFormat": {"bold": True, "foregroundColor": {"red": 1, "green": 1, "blue": 1}}
@@ -317,11 +317,11 @@ def setup_sheets(spreadsheet):
             spreadsheet.add_worksheet(title="Dashboard", rows=50, cols=10)
             dashboard = spreadsheet.worksheet("Dashboard")
             
-            dashboard.update('A1', 'AI VISIBILITY MONITOR - GRUPO VAUGHAN')
+            dashboard.update(range_name='A1', values=[['AI VISIBILITY MONITOR - GRUPO VAUGHAN']])
             dashboard.format('A1', {"textFormat": {"bold": True, "fontSize": 16}})
             dashboard.merge_cells('A1:F1')
             
-            dashboard.update('A3:F3', [['Modelo', 'Menciones', 'Tasa %', 'Pos. Promedio', 'Última Act.', 'Tendencia']])
+            dashboard.update(range_name='A3:F3', values=[['Modelo', 'Menciones', 'Tasa %', 'Pos. Promedio', 'Última Act.', 'Tendencia']])
             dashboard.format('A3:F3', {
                 "backgroundColor": {"red": 0.95, "green": 0.95, "blue": 0.95},
                 "textFormat": {"bold": True}
@@ -332,7 +332,7 @@ def setup_sheets(spreadsheet):
             spreadsheet.add_worksheet(title="Timeline", rows=1000, cols=8)
             timeline = spreadsheet.worksheet("Timeline")
             timeline_headers = ['Fecha', 'ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'Bing', 'Total', 'Tasa %']
-            timeline.update('A1:H1', [timeline_headers])
+            timeline.update(range_name='A1:H1', values=[timeline_headers])
             timeline.format('A1:H1', {
                 "backgroundColor": {"red": 0.2, "green": 0.2, "blue": 0.8},
                 "textFormat": {"bold": True, "foregroundColor": {"red": 1, "green": 1, "blue": 1}}
@@ -343,7 +343,7 @@ def setup_sheets(spreadsheet):
             spreadsheet.add_worksheet(title="Por Query", rows=100, cols=9)
             por_query = spreadsheet.worksheet("Por Query")
             pq_headers = ['Query', 'Categoría', 'ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'Bing', 'Total Menciones', 'Tasa %']
-            por_query.update('A1:I1', [pq_headers])
+            por_query.update(range_name='A1:I1', values=[pq_headers])
             por_query.format('A1:I1', {
                 "backgroundColor": {"red": 0.2, "green": 0.2, "blue": 0.8},
                 "textFormat": {"bold": True, "foregroundColor": {"red": 1, "green": 1, "blue": 1}}
@@ -392,9 +392,75 @@ def upload_to_sheets(spreadsheet, results: list):
         sheet.append_rows(rows_to_add)
         print(f"✅ {len(rows_to_add)} filas añadidas a Google Sheets")
 
-        update_dashboard(spreadsheet)
-        update_timeline(spreadsheet)
-        update_por_query(spreadsheet)
+        # --- Actualizar Dashboard ---
+        dashboard = spreadsheet.worksheet("Dashboard")
+        dashboard.update(range_name='B1', values=[[datetime.now().strftime("%Y-%m-%d %H:%M")]])
+        
+        # Calcular KPIs
+        kpi_rows = []
+        for model in ['ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'Bing/Copilot']:
+            model_data = [r for r in results if r['models'].get(model)]
+            mentions = sum(1 for r in model_data if r['models'][model].get('mentioned'))
+            total = len(results)
+            rate = f"{(mentions/total*100):.1f}%" if total > 0 else "0.0%"
+            
+            positions = [r['models'][model].get('position') for r in model_data if r['models'][model].get('position') and isinstance(r['models'][model]['position'], int)]
+            avg_pos = f"{sum(positions)/len(positions):.1f}" if positions else "-"
+            
+            kpi_rows.append([model, mentions, rate, avg_pos, datetime.now().strftime("%H:%M"), "-"])
+        
+        dashboard.update(range_name='A4:F8', values=kpi_rows)
+        print("✅ Dashboard actualizado")
+        
+        # --- Actualizar Timeline ---
+        timeline = spreadsheet.worksheet("Timeline")
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        
+        # Calcular totales del día
+        day_mentions = {m: 0 for m in ['ChatGPT', 'Claude', 'Gemini', 'Perplexity', 'Bing']}
+        
+        for res in results:
+            for model_key, model_name in [('ChatGPT', 'ChatGPT'), ('Claude', 'Claude'), ('Gemini', 'Gemini'), ('Perplexity', 'Perplexity'), ('Bing/Copilot', 'Bing')]:
+                 if res['models'].get(model_key, {}).get('mentioned'):
+                     day_mentions[model_name] += 1
+        
+        total_mentions_day = sum(day_mentions.values())
+        # Esto es un snapshot de "ahora", idealmente habría que acumular si se ejecuta múltiples veces, 
+        # pero para simplicidad añadiremos una nueva fila por ejecución
+        
+        timeline_row = [
+            current_date,
+            day_mentions['ChatGPT'],
+            day_mentions['Claude'],
+            day_mentions['Gemini'],
+            day_mentions['Perplexity'],
+            day_mentions['Bing'],
+            total_mentions_day,
+            f"{(total_mentions_day / (len(results)*5) * 100):.1f}%" # Tasa global aprox
+        ]
+        
+        timeline.append_row(timeline_row)
+        print("✅ Timeline actualizado")
+
+        # --- Actualizar Por Query ---
+        por_query = spreadsheet.worksheet("Por Query")
+        pq_rows = []
+        for res in results:
+            row = [
+                res['query'],
+                categorize_query(res['query']), # Usar la función de categorización
+                1 if res['models'].get('ChatGPT', {}).get('mentioned') else 0,
+                1 if res['models'].get('Claude', {}).get('mentioned') else 0,
+                1 if res['models'].get('Gemini', {}).get('mentioned') else 0,
+                1 if res['models'].get('Perplexity', {}).get('mentioned') else 0,
+                1 if res['models'].get('Bing/Copilot', {}).get('mentioned') else 0,
+            ]
+            row.append(sum(row[2:])) # Total
+            row.append(f"{(sum(row[2:])/5*100):.0f}%") # Tasa
+            pq_rows.append(row)
+        
+        por_query.append_rows(pq_rows)
+        print("✅ Hoja 'Por Query' actualizada")
 
         return True
     except Exception as e:
@@ -611,7 +677,7 @@ def run_monitoring():
                         print("⚠️  No mencionado")
                 
                 query_results['models'][model_name] = result
-                time.sleep(3)
+                time.sleep(10)
                 
             except Exception as e:
                 print(f"❌ Error: {str(e)[:50]}")
