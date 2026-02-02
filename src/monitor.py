@@ -5,7 +5,7 @@ Monitorea la presencia de marca en respuestas de múltiples modelos de IA
 """
 
 import anthropic
-import google.generativeai as genai
+from google import genai
 from openai import OpenAI
 import requests
 import pandas as pd
@@ -125,24 +125,25 @@ def check_claude(query: str) -> dict:
         return {'model': 'Claude', 'mentioned': False, 'position': None, 'error': str(e)}
 
 def check_gemini(query: str) -> dict:
-    """Consulta Gemini"""
+    """Consulta Gemini (Versión 2.5 Flash Lite)"""
     try:
-        genai.configure(api_key=GOOGLE_API_KEY)
-        genai.configure(api_key=GOOGLE_API_KEY)
-        # Usamos versión Pro genérica (suele ser 1.0 o 1.5 estable)
-        model = genai.GenerativeModel('gemini-pro') 
-        response = model.generate_content(query)
+        client = genai.Client(api_key=GOOGLE_API_KEY)
+        # Usamos la nueva versión 2.5 Flash Lite optimizada
+        response = client.models.generate_content(
+            model='gemini-2.5-flash-lite',
+            contents=query
+        )
         text = response.text
         return {
-            'model': 'Gemini',
-            'mentioned': check_mentions(text),
-            'position': find_mention_position(text),
+            "model": "Gemini",
+            "mentioned": check_mentions(text),
+            "position": find_mention_position(text) if check_mentions(text) else None,
             'context': extract_mention_context(text),
             'full_response': text[:500],
-            'error': None
+            "error": None
         }
     except Exception as e:
-        return {'model': 'Gemini', 'mentioned': False, 'position': None, 'error': str(e)}
+        return {"model": "Gemini", "mentioned": False, "position": None, "error": str(e)}
 
 def check_perplexity(query: str) -> dict:
     """Consulta Perplexity"""
