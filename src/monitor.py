@@ -103,7 +103,7 @@ def check_claude(query: str) -> dict:
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
-            model="claude-3-5-haiku-20241022", # ID específico (el alias 'latest' fallaba)
+            model="claude-3-haiku-20240307", # Haiku 3.0 (el más estable y barato disponible en todas las cuentas)
             max_tokens=1000,
             messages=[{"role": "user", "content": query}]
         )
@@ -129,8 +129,8 @@ def check_gemini(query: str) -> dict:
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
         genai.configure(api_key=GOOGLE_API_KEY)
-        # Usamos 1.5 Flash que es muy estable y tiene buen tier gratuito
-        model = genai.GenerativeModel('gemini-1.5-flash') 
+        # Usamos versión Pro genérica (suele ser 1.0 o 1.5 estable)
+        model = genai.GenerativeModel('gemini-pro') 
         response = model.generate_content(query)
         text = response.text
         return {
