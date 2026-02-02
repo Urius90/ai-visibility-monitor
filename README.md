@@ -1,108 +1,64 @@
-# AI Visibility Monitor - Grupo Vaughan
+# 🚀 AI Visibility Monitor - Grupo Vaughan
 
-Monitoreo automatizado de visibilidad de marca en respuestas de modelos de IA principales.
+Este proyecto automatiza el monitoreo de la visibilidad de marca de **Grupo Vaughan** en los principales modelos de Inteligencia Artificial Generativa.
 
-## Que hace
+## 📊 ¿Qué hace este monitor?
 
-Consulta diariamente 5 modelos de IA con queries relacionadas con academias de ingles y detecta si mencionan la marca Vaughan. Los resultados se almacenan en Google Sheets con dashboards automaticos.
+Ejecuta una serie de queries estratégicas (transaccionales, informacionales y comparativas) relacionadas con la enseñanza de inglés y analiza las respuestas de los siguientes modelos para detectar si mencionan a "Vaughan":
 
-## Modelos monitoreados
+| Modelo | Versión Configurada | Estrategia |
+| :--- | :--- | :--- |
+| **Gemini** | `gemini-2.5-flash-lite` | **User-Centric**: Simula la experiencia de usuarios móviles/gratuitos (rápido y conciso). |
+| **Claude** | `claude-3-haiku-20240307` | **Cost-Efficiency**: Versión optimizada y económica. |
+| **ChatGPT** | `gpt-3.5-turbo` | Estándar de mercado. |
+| **Perplexity** | (API) | *Pendiente de API Key* |
+| **Bing/Copilot** | (API) | *Pendiente de API Key* |
 
-| Modelo | API | Modelo especifico |
-|--------|-----|-------------------|
-| ChatGPT | OpenAI | GPT-4o |
-| Claude | Anthropic | Sonnet 4 |
-| Gemini | Google AI | 2.0 Flash |
-| Perplexity | Perplexity | Sonar |
-| Bing/Copilot | Bing Search | v7.0 |
+Los resultados se guardan automáticamente en un dashboard de **Google Sheets**.
 
-## Queries monitoreadas
+---
 
-**Transaccionales:** mejores academias, cursos online, clases para empresas, academia Madrid, cursos intensivos
+## 🛠️ Configuración en GitHub
 
-**Informacionales:** como aprender rapido, diferencia B1/B2, metodo adultos, cuanto tiempo
+Este proyecto está diseñado para ejecutarse automáticamente mediante **GitHub Actions**.
 
-**Branded:** metodo Vaughan funciona, opiniones Grupo Vaughan
+### Secretos Requeridos
+Para que funcione, debes configurar los siguientes secretos en el repositorio (`Settings` > `Secrets and variables` > `Actions`):
 
-## Keywords de marca detectadas
+- `OPENAI_API_KEY`: Tu clave de OpenAI.
+- `ANTHROPIC_API_KEY`: Tu clave de Anthropic.
+- `GOOGLE_API_KEY`: Tu clave de Google AI Studio.
+- `GSPREAD_CREDENTIALS`: El contenido completo de tu JSON de cuenta de servicio de Google (para Sheets).
 
-`vaughan`, `grupo vaughan`, `richard vaughan`, `vaughantown`
+---
 
-## Setup
+## 🚀 Cómo Ejecutar
 
-### 1. APIs necesarias
+1. Ve a la pestaña **[Actions](https://github.com/Urius90/ai-visibility-monitor/actions)** en este repositorio.
+2. Selecciona el workflow **"Run AI Visibility Monitor"**.
+3. Pulsa el botón verde **"Run workflow"**.
 
-Obtener API keys de:
-- **OpenAI** (obligatoria): https://platform.openai.com/api-keys
-- **Anthropic** (obligatoria): https://console.anthropic.com/
-- **Google AI** (obligatoria): https://aistudio.google.com/app/apikey
-- **Perplexity** (opcional): https://docs.perplexity.ai/
-- **Bing Search** (opcional): https://www.microsoft.com/en-us/bing/apis/bing-web-search-api
+El proceso tardará unos minutos y al finalizar verás los resultados actualizados en el Google Sheet vinculado.
 
-### 2. Google Sheets Service Account
+---
 
-1. Ir a [Google Cloud Console](https://console.cloud.google.com/)
-2. Crear proyecto o seleccionar existente
-3. Habilitar Google Sheets API y Google Drive API
-4. Crear Service Account (IAM > Service Accounts)
-5. Generar clave JSON y descargar
-6. Compartir el Google Sheet con el email del Service Account
+## 📂 Estructura del Proyecto
 
-### 3. Configurar secrets en GitHub
+- `src/monitor.py`: Código principal. Aquí se definen las `QUERIES` y la lógica de cada modelo.
+- `.github/workflows/monitor.yml`: Configuración del automatismo (cron o manual).
+- `requirements.txt`: Dependencias (incluye `google-genai` para soporte de Gemini 2.5).
 
-Ir a **Settings > Secrets and variables > Actions** del repositorio y crear:
+## 📝 Personalización
 
-| Secret | Descripcion |
-|--------|-------------|
-| `OPENAI_API_KEY` | API key de OpenAI |
-| `ANTHROPIC_API_KEY` | API key de Anthropic |
-| `GOOGLE_API_KEY` | API key de Google AI Studio |
-| `PERPLEXITY_API_KEY` | API key de Perplexity (opcional) |
-| `BING_API_KEY` | API key de Bing Search (opcional) |
-| `GOOGLE_CREDENTIALS` | Contenido completo del JSON de Service Account |
+### Añadir nuevas preguntas
+Edita `src/monitor.py` y añade tu query a la lista `QUERIES`:
 
-### 4. Crear el Google Sheet
-
-Crear un spreadsheet llamado **"AI Visibility Monitor - Grupo Vaughan"** y compartirlo con el email del Service Account. El script creara automaticamente las hojas necesarias en la primera ejecucion.
-
-## Ejecucion
-
-### Automatica
-
-El workflow de GitHub Actions se ejecuta diariamente a las **8:00 AM UTC** (10:00 AM Madrid).
-
-### Manual
-
-Ir a **Actions > AI Visibility Monitor > Run workflow** en GitHub.
-
-### Local (desarrollo)
-
-```bash
-export OPENAI_API_KEY="sk-..."
-export ANTHROPIC_API_KEY="sk-ant-..."
-export GOOGLE_API_KEY="AI..."
-python src/monitor.py
+```python
+QUERIES = [
+    "mejores academias de inglés en España",
+    "tu nueva pregunta aquí...",
+]
 ```
 
-## Estructura del Google Sheet
-
-- **Raw Data**: datos brutos de cada ejecucion (timestamp, query, mencion por modelo)
-- **Dashboard**: KPIs agregados (tasa de mencion, posicion promedio, tendencia)
-
-## Estructura del proyecto
-
-```
-ai-visibility-monitor/
-├── .github/
-│   └── workflows/
-│       └── monitor.yml
-├── src/
-│   └── monitor.py
-├── .gitignore
-├── requirements.txt
-└── README.md
-```
-
-## Autor
-
-**Arturo** - Digital Marketing Specialist @ Grupo Vaughan
+---
+*Desarrollado para el equipo de Marketing Digital de Grupo Vaughan.*
