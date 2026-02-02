@@ -103,7 +103,7 @@ def check_claude(query: str) -> dict:
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
-            model="claude-3-5-sonnet-latest", # Alias estable
+            model="claude-3-5-haiku-latest", # Modelo ligero y económico
             max_tokens=1000,
             messages=[{"role": "user", "content": query}]
         )
@@ -129,12 +129,7 @@ def check_gemini(query: str) -> dict:
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
         genai.configure(api_key=GOOGLE_API_KEY)
-        # Probamos Gemini 2.0 Flash Lite que sabíamos que existía (dio 429 antes)
-        model = genai.GenerativeModel('gemini-2.0-flash-lite-preview-02-05') 
-        # Fallback a nombre generico si hace falta, pero intentemos ser específicos o usar el que funcionaba
-        # ERROR 404 indicated 1.5-flash-001 was gone. 
-        # ERROR 429 earlier indicated 2.0-flash-lite existed.
-        # Vamos a probar con 'gemini-2.0-flash' genérico que suele ser el alias estable.
+        # Usamos versión Flash (rápida/económica)
         model = genai.GenerativeModel('gemini-2.0-flash') 
         response = model.generate_content(query)
         text = response.text
