@@ -103,7 +103,7 @@ def check_claude(query: str) -> dict:
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
-            model="claude-3-5-sonnet-latest",
+            model="claude-3-5-sonnet-20241022",
             max_tokens=1000,
             messages=[{"role": "user", "content": query}]
         )
@@ -123,7 +123,7 @@ def check_gemini(query: str) -> dict:
     """Consulta Gemini"""
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash-001')
         response = model.generate_content(query)
         text = response.text
         return {
